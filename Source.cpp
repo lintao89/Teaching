@@ -4,23 +4,18 @@
 #include <string.h>
 #include <ctype.h>
 
-void PIDXML(char HL7[]);
-void DG1XML(char HL7[]);
+void XML(char HL7[],int opt);
+void JSON(int opt);
 void Fulljson(char al[]);
 
 int main()
 {
     FILE* fptr;  //開HL7的檔案指標
     FILE* fptr2; //寫XML的檔案指標
-    char* ptr;
     char HL7[500] = { "" };  //放HL7的陣列
-    char id[11] = { "" };    //PID(Patient ID)
-    char al[50] = { "" };    //AL1(Allergic)
-    char diag[100] = { "" }; //DG1(Diagnosis)
-    char json[1000] = { "" };
-    char tf; //是否轉檔(True or False)
-    int i = 0, opt = 0, flag = 0;
-    /*程式開始*/
+    char data[50] = { "" };    //AL1(Allergic)
+    int i = 0, opt = 0;
+    /**********程式開始**********/
 
     if ((fptr = fopen("HL7.hl7", "r")) != NULL)
     {
@@ -40,46 +35,22 @@ int main()
     while (opt != -1)
     {
         i = 0;
-        printf("\n1)病患PID碼2)過敏代碼3)診斷說明4)將AL1 json輸入完整FHIR檔案0)將XML檔案轉JSON格式-1)離開:");
+        printf("\n1)病患PID碼2)過敏代碼3)診斷說明4)輸出完整FHIR檔案0)將XML檔案轉JSON格式-1)離開:");
         scanf("%d", &opt);
         switch (opt)
         {
         case 1:
-            PIDXML(HL7);
+            XML(HL7,opt);
             break;
         case 2:
-            ptr = strstr(HL7, "AL1");
-            if (ptr)
-            {
-                ptr += 7;
-                for (i = 0; i < 10; i++)
-                {
-                    al[i] = *ptr;
-                    ptr++;
-                    if (ptr == NULL)
-                    {
-                        break;
-                    }
-                }
-                al[i] = '\0';
-                printf("%s", al);
-            }
-            printf("\n是否轉XML檔? y/n:");
-            scanf(" %c", &tf);
-            if (tf == 'y')
-            {
-                if ((fptr2 = fopen("AL1", "w+")) != NULL)
-                {
-                    fprintf(fptr2, "<HL7Message><%s><%s.0>%s</%s.0></%s></HL7Message>", al, al, al, al, al);
-                    fclose(fptr2);
-                }
-            }
-            Fulljson(al);
+            XML(HL7, opt);
             break;
         case 3:
-            DG1XML(HL7);
+            XML(HL7, opt);
             break;
-
+        case 4:
+            Fulljson(data);
+            break;
         case 0:
             printf("\n1)將病人資訊(PID)轉換成JSON\n2)將過敏資訊(AL1)轉換成JSON\n3)將診斷資訊(DG1)轉換成JSON\n0)回主選單\n選項:");
             scanf("%d", &opt);
@@ -87,194 +58,13 @@ int main()
             switch (opt)
             {
             case 1:
-                if ((fptr2 = fopen("PID", "r")) != NULL)
-                {
-                    i = 0;
-                    while (!feof(fptr2))
-                    {
-                        fscanf(fptr2, "%c", &json[i]);
-                        i++;
-                    }
-                    json[i] = '\0';
-                    fclose(fptr2);
-                }
-                else
-                {
-                    printf("查無此檔案，請先建XML檔在進來轉檔!\n");
-                }
-                printf("%s", json);
-                if ((fptr2 = fopen("PID.json", "w+")) != NULL)
-                {
-                    i = 0;
-                    while (json[i] != '\0') {
-
-                        if (isdigit(json[i]) || isalpha(json[i]) || json[i] == '.') {
-                            fprintf(fptr2, "%c", json[i]);
-                            i++;
-                        }
-                        else if (json[i] == '<' && json[i + 1] != '/') {
-                            fprintf(fptr2, "\n{\n\"", json[i]);
-                            i++;
-                        }
-                        else if (json[i] == '>') {
-                            fprintf(fptr2, "\":", json[i]);
-                            if (json[i+1]!='<') {
-                                 fprintf(fptr2, "\"", json[i]);
-                                 while (json[i+1] != '<') {
-                                     i++;
-                                     fprintf(fptr2, "%c", json[i]);
-                                     flag = 1;
-                                 }
-                                 if (flag == 1) {
-                                     fprintf(fptr2, "\"", json[i]);
-                                 }
-                            }                          
-                            i++;
-                        }
-                        else if ((isdigit(json[i] || isalpha(json[i]))) && json[i + 1]=='<') {
-                            fprintf(fptr2, "\"", json[i]);
-                        }
-                        else if (json[i] == '<' && json[i + 1] == '/') {
-                            while (json[i]!='>')
-                            {
-                                i++;
-                            }
-                            fprintf(fptr2, "\n}\n", json[i]);
-                            i++;
-                        }
-                        else {
-                            i++;
-                        }
-                    }
-                    fclose(fptr2);
-                }
+                JSON(opt);
                 break;
             case 2:
-                if ((fptr2 = fopen("AL1", "r")) != NULL)
-                {
-                    i = 0;
-                    while (!feof(fptr2))
-                    {
-                        fscanf(fptr2, "%c", &json[i]);
-                        i++;
-                    }
-                    json[i] = '\0';
-                    fclose(fptr2);
-                }
-                else
-                {
-                    printf("查無此檔案，請先建XML檔在進來轉檔!\n");
-                }
-                printf("%s", json);
-                if ((fptr2 = fopen("AL1.json", "w+")) != NULL)
-                {
-                    i = 0;
-                    while (json[i] != '\0') {
-
-                        if (isdigit(json[i]) || isalpha(json[i]) || json[i] == '.') {
-                            fprintf(fptr2, "%c", json[i]);
-                            i++;
-                        }
-                        else if (json[i] == '<' && json[i + 1] != '/') {
-                            fprintf(fptr2, "\n{\n\"", json[i]);
-                            i++;
-                        }
-                        else if (json[i] == '>') {
-                            fprintf(fptr2, "\":", json[i]);
-                            if (json[i+1]!='<') {
-                                 fprintf(fptr2, "\"", json[i]);
-                                 while (json[i+1] != '<') {
-                                     i++;
-                                     fprintf(fptr2, "%c", json[i]);
-                                     flag = 1;
-                                 }
-                                 if (flag == 1) {
-                                     fprintf(fptr2, "\"", json[i]);
-                                 }
-                            }                          
-                            i++;
-                        }
-                        else if ((isdigit(json[i] || isalpha(json[i]))) && json[i + 1]=='<') {
-                            fprintf(fptr2, "\"", json[i]);
-                        }
-                        else if (json[i] == '<' && json[i + 1] == '/') {
-                            while (json[i]!='>')
-                            {
-                                i++;
-                            }
-                            fprintf(fptr2, "\n}\n", json[i]);
-                            i++;
-                        }
-                        else {
-                            i++;
-                        }
-                    }
-                    fclose(fptr2);
-                }
-                Fulljson(al);
+                JSON(opt);
                 break;
             case 3:
-                if ((fptr2 = fopen("DG1", "r")) != NULL)
-                {
-                    i = 0;
-                    while (!feof(fptr2))
-                    {
-                        fscanf(fptr2, "%c", &json[i]);
-                        i++;
-                    }
-                    json[i] = '\0';
-                    fclose(fptr2);
-                }
-                else
-                {
-                    printf("查無此檔案，請先建XML檔在進來轉檔!\n");
-                }
-                printf("%s", json);
-                if ((fptr2 = fopen("DG1.json", "w+")) != NULL)
-                {
-                    i = 0;
-                    while (json[i] != '\0') {
-
-                        if (isdigit(json[i]) || isalpha(json[i]) || json[i] == '.') {
-                            fprintf(fptr2, "%c", json[i]);
-                            i++;
-                        }
-                        else if (json[i] == '<' && json[i + 1] != '/') {
-                            fprintf(fptr2, "\n{\n\"", json[i]);
-                            i++;
-                        }
-                        else if (json[i] == '>') {
-                            fprintf(fptr2, "\":", json[i]);
-                            if (json[i + 1] != '<') {
-                                fprintf(fptr2, "\"", json[i]);
-                                while (json[i + 1] != '<') {
-                                    i++;
-                                    fprintf(fptr2, "%c", json[i]);
-                                    flag = 1;
-                                }
-                                if (flag == 1) {
-                                    fprintf(fptr2, "\"", json[i]);
-                                }
-                            }
-                            i++;
-                        }
-                        else if ((isdigit(json[i] || isalpha(json[i]))) && json[i + 1] == '<') {
-                            fprintf(fptr2, "\"", json[i]);
-                        }
-                        else if (json[i] == '<' && json[i + 1] == '/') {
-                            while (json[i] != '>')
-                            {
-                                i++;
-                            }
-                            fprintf(fptr2, "\n}\n", json[i]);
-                            i++;
-                        }
-                        else {
-                            i++;
-                        }
-                    }
-                    fclose(fptr2);
-                }
+                JSON(opt);
                 break;
             case 0:
                 break;
@@ -293,76 +83,181 @@ int main()
 
     return 0;
 }
-void PIDXML(char HL7[]) {
+void XML(char HL7[],int opt) {
     FILE* fptr;  //開HL7的檔案指標
-    FILE* fptr2; //寫XML的檔案指標
     char* ptr;
-    char id[11] = { "" };    //PID(Patient ID)
+    char data[50] = { "" };    //PID(Patient ID)
     int i = 0;
     char tf; //是否轉檔(True or False)
-    ptr = strstr(HL7, "PID");
-    if (ptr)
-    {
-        ptr += 4;
-        for (i = 0; i < 10; i++)
+    if (opt == 1) {
+        ptr = strstr(HL7, "PID");
+        if (ptr)
         {
-            id[i] = *ptr;
-            ptr++;
+            ptr += 4;
+            for (i = 0; i < 10; i++)
+            {
+                data[i] = *ptr;
+                ptr++;
+            }
+            data[10] = '\0';
+            printf("%s", data);
         }
-        id[10] = '\0';
-        printf("%s", id);
     }
+    else if (opt == 2) {
+        ptr = strstr(HL7, "AL1");
+        if (ptr)
+        {
+            ptr += 7;
+            for (i = 0; i < 10; i++)
+            {
+                data[i] = *ptr;
+                ptr++;
+                if (ptr == NULL)
+                {
+                    break;
+                }
+            }
+            data[i] = '\0';
+            printf("%s", data);
+        }
+    }
+    else if (opt == 3) {
+        ptr = strstr(HL7, "DG1");
+        if (ptr)
+        {
+            ptr += 13;
+            for (i = 0; i < 20; i++)
+            {
+                data[i] = *ptr;
+                ptr++;
+                if (ptr == NULL)
+                {
+                    break;
+                }
+            }
+            data[i] = '\0';
+            printf("%s", data);
+        }
+    }
+    
+
     printf("\n是否轉XML檔? y/n:");
     scanf(" %c", &tf);
     if (tf == 'y')
     {
-        if ((fptr2 = fopen("PID", "w+")) != NULL)
-        {
-            fprintf(fptr2, "<HL7Message><%s><%s.0>%s</%s.0></%s></HL7Message>", id, id, id, id, id);
-            fclose(fptr2);
-        }
-    }
-}
-void DG1XML(char HL7[]) 
-{
-    FILE* fptr2; //寫XML的檔案指標
-    char* ptr;
-    char diag[100] = { "" }; //DG1(Diagnosis)
-    char tf; //是否轉檔(True or False)
-    int i = 0;
-    ptr = strstr(HL7, "DG1");
-    if (ptr)
-    {
-        ptr += 13;
-        for (i = 0; i < 20; i++)
-        {
-            diag[i] = *ptr;
-            ptr++;
-            if (ptr == NULL)
+        if (opt == 1) {
+            if ((fptr = fopen("PID", "w+")) != NULL)
             {
-                break;
+                fprintf(fptr, "<HL7Message><%s><%s.0>%s</%s.0></%s></HL7Message>", data, data, data, data, data);
+                fclose(fptr);
             }
         }
-        diag[i] = '\0';
-        printf("%s", diag);
-    }
-    printf("\n是否轉XML檔? y/n:");
-    scanf(" %c", &tf);
-    if (tf == 'y')
-    {
-        if ((fptr2 = fopen("DG1", "w+")) != NULL)
-        {
-            fprintf(fptr2, "<HL7Message><%s><%s.0>%s</%s.0></%s></HL7Message>", diag, diag, diag, diag, diag);
-            fclose(fptr2);
+        else if (opt == 2) {
+            if ((fptr = fopen("AL1", "w+")) != NULL)
+            {
+                fprintf(fptr, "<HL7Message><%s><%s.0>%s</%s.0></%s></HL7Message>", data, data, data, data, data);
+                fclose(fptr);
+            }
         }
+        else if (opt == 3) {
+            if ((fptr = fopen("DG1", "w+")) != NULL)
+            {
+                fprintf(fptr, "<HL7Message><%s><%s.0>%s</%s.0></%s></HL7Message>", data, data, data, data, data);
+                fclose(fptr);
+            }
+        }
+
+    }
+}
+void JSON(int opt) {
+    FILE* fptr = NULL;
+    int i = 0;
+    char json[1000] = { "" };
+    bool flag = false;
+    if (opt == 1) {
+        fptr = fopen("PID", "r");
+    }
+    else if (opt == 2) {
+        fptr = fopen("AL1", "r");
+    }
+    else if (opt == 3) {
+        fptr = fopen("DG1", "r");
+    }
+    if (fptr != NULL)
+    {
+        i = 0;
+        while (!feof(fptr))
+        {
+            fscanf(fptr, "%c", &json[i]);
+            i++;
+        }
+        json[i] = '\0';
+        fclose(fptr);
+    }
+    else
+    {
+        printf("查無此檔案，請先建XML檔在進來轉檔!\n");
+    }
+    printf("%s", json);
+    if (opt == 1) {
+        fptr = fopen("PID.json", "w+");
+    }
+    else if (opt == 2) {
+        fptr = fopen("AL1.json", "w+");
+    }
+    else if (opt == 3) {
+        fptr = fopen("DG1.json", "w+");
+    }
+    if (fptr != NULL)
+    {
+        i = 0;
+        while (json[i] != '\0') {
+
+            if (isdigit(json[i]) || isalpha(json[i]) || json[i] == '.') {
+                fprintf(fptr, "%c", json[i]);
+                i++;
+            }
+            else if (json[i] == '<' && json[i + 1] != '/') {
+                fprintf(fptr, "\n{\n\"", json[i]);
+                i++;
+            }
+            else if (json[i] == '>') {
+                fprintf(fptr, "\":", json[i]);
+                if (json[i + 1] != '<') {
+                    fprintf(fptr, "\"", json[i]);
+                    while (json[i + 1] != '<') {
+                        i++;
+                        fprintf(fptr, "%c", json[i]);
+                        flag = true;
+                    }
+                    if (flag == true) {
+                        fprintf(fptr, "\"", json[i]);
+                    }
+                }
+                i++;
+            }
+            else if ((isdigit(json[i] || isalpha(json[i]))) && json[i + 1] == '<') {
+                fprintf(fptr, "\"", json[i]);
+            }
+            else if (json[i] == '<' && json[i + 1] == '/') {
+                while (json[i] != '>')
+                {
+                    i++;
+                }
+                fprintf(fptr, "\n}\n", json[i]);
+                i++;
+            }
+            else {
+                i++;
+            }
+        }
+        fclose(fptr);
     }
 }
 void Fulljson(char al[])
 {
     FILE* fptr;  //檔案指標
     char json[5000] = { "" };
-    //char upper[2000] = { "" };
-    char lower[20] = { "" };
     int i;
     char* j;
     if ((fptr = fopen("fullAL1info.json", "r")) != NULL)
@@ -381,39 +276,32 @@ void Fulljson(char al[])
         printf("查無此檔案，請先建XML檔在進來轉檔!\n");
     }
     printf("%s", json);
-    if ((fptr = fopen("allergy.json", "w+")) != NULL)
+    if ((fptr = fopen("allergyintolerance-medication.json", "w+")) != NULL)
     {
-        /*先把目的的名字換好*/
         i = 0;
         j = strstr(json, "http://www.nlm.nih.gov/research/umls/rxnorm");
         printf("\n記憶體位置: %p\n", j);
         j = strstr(j, "display");
         j += 11;
-        printf("%s", j);
         while (&json[i] < j) {
             fprintf(fptr, "%c", json[i]);
             i++;
         }
   
-        /*再把上半部補齊*/
-
         fclose(fptr);
     }
-    if ((fptr = fopen("allergy.json", "a+")) != NULL)
+    if ((fptr = fopen("allergyintolerance-medication.json", "a+")) != NULL)
     {
-        /*先把目的的名字換好*/
         i = 0;
         j = strstr(json, "http://www.nlm.nih.gov/research/umls/rxnorm");
         printf("\n記憶體位置: %p\n", j);
         j = strstr(j, "display");
         j += 11;
-        printf("%s", j);
         fprintf(fptr, "%s", al);
         j += sizeof(al);
         while (*j != '"')
             j++;
         fprintf(fptr, "%s", j);
-        /*再把上半部補齊*/
 
         fclose(fptr);
     }
