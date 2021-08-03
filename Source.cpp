@@ -4,7 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 
-void XML(char HL7[],int opt);
+void XML(char HL7[], char data[], int opt);
 void JSON(int opt);
 void Fulljson(char al[]);
 
@@ -40,13 +40,13 @@ int main()
         switch (opt)
         {
         case 1:
-            XML(HL7,opt);
+            XML(HL7, data, opt);
             break;
         case 2:
-            XML(HL7, opt);
+            XML(HL7, data, opt);
             break;
         case 3:
-            XML(HL7, opt);
+            XML(HL7, data, opt);
             break;
         case 4:
             Fulljson(data);
@@ -83,10 +83,9 @@ int main()
 
     return 0;
 }
-void XML(char HL7[],int opt) {
+void XML(char HL7[],char data[],int opt) {
     FILE* fptr;  //開HL7的檔案指標
     char* ptr;
-    char data[50] = { "" };    //PID(Patient ID)
     int i = 0;
     char tf; //是否轉檔(True or False)
     if (opt == 1) {
